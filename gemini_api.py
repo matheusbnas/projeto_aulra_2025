@@ -8,6 +8,8 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 MODELO = "gemini-2.0-flash-lite"
 
+# Função principal para geração de texto
+
 
 def perguntar_gemini(pergunta, contexto=None):
     client = genai.GenerativeModel(MODELO)

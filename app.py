@@ -1,6 +1,11 @@
 import streamlit as st
 from scraper import get_carreiras, get_detalhes_carreira, get_contexto_completo
 from gemini_api import perguntar_gemini, MODELO
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+import os
+from google.auth.transport.requests import Request
 
 st.set_page_config(page_title="Chatbot de Carreiras TechGuide", layout="wide")
 st.title("🤖 Chatbot de Carreiras TechGuide")
@@ -94,12 +99,54 @@ if 'resposta_automatica' not in st.session_state or st.session_state.resposta_au
 st.markdown(f"### Resumo da carreira selecionada: {carreira_selecionada}")
 st.markdown(st.session_state.resposta_automatica)
 
-# Chatbot opcional
-st.subheader("Pergunte ao bot sobre a carreira ou aprofunde sua dúvida:")
-pergunta = st.text_input("Digite sua pergunta (opcional):")
+# Chatbot sempre visível
+st.subheader(
+    "Pergunte ao bot sobre a carreira, ou use comandos especiais com @ para Google Agenda, Keep, etc:")
+st.info("Exemplo: @agenda criar evento para reunião amanhã às 10h. | @keep criar anotação sobre carreira de dados.")
+pergunta = st.text_input("Digite sua pergunta ou comando:")
 
 if pergunta:
     contexto_completo = carregar_contexto_completo()
-    prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh.\n\n{contexto_completo}\n\nPergunta do usuário: {pergunta}"
-    resposta = perguntar_gemini(prompt)
-    st.markdown(f"**Resposta:** {resposta}")
+    # Detecta comandos especiais com @
+    if pergunta.strip().startswith("@agenda"):
+        st.warning(
+            "Integração com Google Agenda: (futuro) Aqui o sistema criaria um evento na agenda usando a API do Google.")
+        st.markdown(f"**Comando detectado:** {pergunta}")
+    elif pergunta.strip().startswith("@keep"):
+        st.warning(
+            "Integração com Google Keep: (futuro) Aqui o sistema criaria uma anotação no Keep usando a API do Google.")
+        st.markdown(f"**Comando detectado:** {pergunta}")
+    else:
+        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh.\n\n{contexto_completo}\n\nPergunta do usuário: {pergunta}"
+        resposta = perguntar_gemini(prompt)
+        st.markdown(f"**Resposta:** {resposta}")
+
+# Escopos necessários
+SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+
+
+def get_calendar_service():
+    creds = None
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+    return build('calendar', 'v3', credentials=creds)
+
+
+def criar_evento_google_agenda(titulo, data_inicio, data_fim):
+    service = get_calendar_service()
+    evento = {
+        'summary': titulo,
+        'start': {'dateTime': data_inicio, 'timeZone': 'America/Sao_Paulo'},
+        'end': {'dateTime': data_fim, 'timeZone': 'America/Sao_Paulo'},
+    }
+    evento = service.events().insert(calendarId='primary', body=evento).execute()
+    return evento.get('htmlLink')
