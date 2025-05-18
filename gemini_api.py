@@ -4,7 +4,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+# Permite configurar a chave Gemini em tempo de execução
+
+
+def configurar_gemini_api_key(api_key=None):
+    if api_key:
+        genai.configure(api_key=api_key)
+    else:
+        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+
+# Inicializa com a chave do .env por padrão
+configurar_gemini_api_key()
 
 MODELO = "gemini-2.0-flash-lite"
 

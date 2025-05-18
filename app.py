@@ -1,11 +1,16 @@
 import streamlit as st
 from scraper import get_carreiras, get_detalhes_carreira
-from gemini_api import perguntar_gemini, MODELO
+from gemini_api import perguntar_gemini, MODELO, configurar_gemini_api_key
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os
 from google.auth.transport.requests import Request
+
+# Cria o arquivo credentials.json a partir da variável de ambiente GOOGLE_CREDENTIALS_JSON, se existir
+if os.getenv('GOOGLE_CREDENTIALS_JSON'):
+    with open('credentials.json', 'w') as f:
+        f.write(os.getenv('GOOGLE_CREDENTIALS_JSON'))
 
 st.set_page_config(page_title="Chatbot de Carreiras TechGuide", layout="wide")
 st.title("🤖 Chatbot de Carreiras TechGuide")
@@ -29,10 +34,17 @@ carreira_nomes = [c['nome'] for c in carreiras]
 if 'carreira_selecionada' not in st.session_state:
     st.session_state.carreira_selecionada = carreira_nomes[0]
 
-# Sidebar: modelo Gemini e fontes
+# Sidebar: opção de chave Gemini
 st.sidebar.markdown("🤖 Chatbot de Carreiras TechGuide")
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Modelo Gemini em uso:** `{MODELO}`")
+user_api_key = st.sidebar.text_input(
+    "Chave Gemini API (opcional, sobrescreve a do .env)", type="password")
+if user_api_key:
+    configurar_gemini_api_key(user_api_key)
+    st.sidebar.success("Usando chave Gemini fornecida pelo usuário.")
+else:
+    st.sidebar.info("Usando chave Gemini do .env.")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Fontes e Portfólio:**")
 st.sidebar.markdown(
