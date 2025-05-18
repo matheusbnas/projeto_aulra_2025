@@ -7,7 +7,7 @@ Agora, o chatbot também permite criar eventos no Google Agenda usando comandos 
 ## Deploy Online
 
 Acesse o chatbot em produção:
-👉 [https://chatbot-scraper.streamlit.app/](https://chatbot-scraper.streamlit.app/)
+👉 [https://projeto-aulra-2025.onrender.com/](https://projeto-aulra-2025.onrender.com/)
 
 ## Funcionalidades
 
@@ -55,6 +55,9 @@ Acesse o chatbot em produção:
 
    - No [Google Cloud Console](https://console.cloud.google.com/), ative a API do Google Agenda e crie um ID OAuth 2.0.
    - Baixe o arquivo `credentials.json` e coloque na raiz do projeto.
+   - **Para deploy em Render ou outros serviços cloud:**
+     - Copie todo o conteúdo do seu `credentials.json` e cole como valor da variável de ambiente `GOOGLE_CREDENTIALS_JSON`.
+     - O app irá criar automaticamente o arquivo `credentials.json` na inicialização.
 
 6. **Execute o app:**
 
@@ -93,4 +96,6 @@ Este projeto é apenas para fins educacionais e de demonstração.
 
 ---
 
-**Deploy:** [https://chatbot-scraper.streamlit.app/](https://chatbot-scraper.streamlit.app/)
+**Deploy:**
+
+- [https://projeto-aulra-2025.onrender.com/](https://projeto-aulra-2025.onrender.com/)

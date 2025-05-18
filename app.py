@@ -6,6 +6,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os
 from google.auth.transport.requests import Request
+from datetime import datetime, timedelta
+import re
 
 # Cria o arquivo credentials.json a partir da variável de ambiente GOOGLE_CREDENTIALS_JSON, se existir
 if os.getenv('GOOGLE_CREDENTIALS_JSON'):
@@ -114,15 +116,93 @@ st.subheader(
 st.info("Exemplo: @agenda criar evento para reunião amanhã às 10h. | @keep criar anotação sobre carreira de dados.")
 pergunta = st.text_input("Digite sua pergunta ou comando:")
 
+# Escopos necessários
+SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+
+# Função para extrair dados do comando @agenda (simples, pode ser melhorada)
+
+
+def extrair_evento_agenda(comando):
+    # Exemplo: @agenda criar evento para reunião amanhã às 10h
+    # Extrai título e data/hora simples
+    match = re.search(
+        r'evento para (.+) (amanhã|hoje|[0-9]{1,2}/[0-9]{1,2}|segunda|terça|quarta|quinta|sexta|sábado|domingo)? ?(às|as)? ?([0-9]{1,2}h)?', comando, re.I)
+    titulo = "Evento do Chatbot"
+    data_inicio = None
+    data_fim = None
+    if match:
+        titulo = match.group(1).strip().capitalize()
+        hora = match.group(4)
+        if match.group(2):
+            dia = match.group(2).lower()
+            if dia == 'amanhã':
+                data = datetime.now() + timedelta(days=1)
+            elif dia == 'hoje':
+                data = datetime.now()
+            else:
+                data = datetime.now()  # fallback
+        else:
+            data = datetime.now()
+        if hora:
+            hora_num = int(hora.replace('h', ''))
+            data = data.replace(hour=hora_num, minute=0,
+                                second=0, microsecond=0)
+        data_inicio = data.isoformat()
+        data_fim = (data + timedelta(hours=1)).isoformat()
+    return titulo, data_inicio, data_fim
+
+# Função para autenticação OAuth web
+
+
+@st.cache_resource(show_spinner=True)
+def get_calendar_flow():
+    return InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+
+
+def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
+    flow = get_calendar_flow()
+    if code:
+        flow.fetch_token(code=code)
+        creds = flow.credentials
+        service = build('calendar', 'v3', credentials=creds)
+        evento = {
+            'summary': titulo,
+            'start': {'dateTime': data_inicio, 'timeZone': 'America/Sao_Paulo'},
+            'end': {'dateTime': data_fim, 'timeZone': 'America/Sao_Paulo'},
+        }
+        evento = service.events().insert(calendarId='primary', body=evento).execute()
+        return evento.get('htmlLink')
+    else:
+        auth_url, _ = flow.authorization_url(prompt='consent')
+        return auth_url
+
+
 if pergunta:
     contexto = "\n".join([
         d['conteudo'] if d['tipo'] == 'titulo' else ", ".join(d['conteudo']) for d in detalhes
     ])
     # Detecta comandos especiais com @
     if pergunta.strip().startswith("@agenda"):
-        st.warning(
-            "Integração com Google Agenda: (futuro) Aqui o sistema criaria um evento na agenda usando a API do Google.")
         st.markdown(f"**Comando detectado:** {pergunta}")
+        # Extrai dados do evento
+        titulo, data_inicio, data_fim = extrair_evento_agenda(pergunta)
+        # Passo 1: Se não há code, gera link de autorização
+        code = st.text_input(
+            "Cole aqui o código de autorização do Google (após clicar no link abaixo):", key="code_input")
+        if not code:
+            auth_url = criar_evento_google_agenda(
+                titulo, data_inicio, data_fim, code=None)
+            st.markdown(
+                f"[Clique aqui para autorizar o Google Agenda]({auth_url})")
+            st.info("Após autorizar, copie o código do Google e cole acima.")
+        else:
+            try:
+                link_evento = criar_evento_google_agenda(
+                    titulo, data_inicio, data_fim, code=code)
+                st.success(
+                    f"Evento criado com sucesso! [Ver no Google Agenda]({link_evento})")
+            except Exception as e:
+                st.error(f"Erro ao criar evento: {e}")
     elif pergunta.strip().startswith("@keep"):
         st.warning(
             "Integração com Google Keep: (futuro) Aqui o sistema criaria uma anotação no Keep usando a API do Google.")
@@ -131,33 +211,3 @@ if pergunta:
         prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh.\n\n{contexto}\n\nPergunta do usuário: {pergunta}"
         resposta = perguntar_gemini(prompt)
         st.markdown(f"**Resposta:** {resposta}")
-
-# Escopos necessários
-SCOPES = ['https://www.googleapis.com/auth/calendar.events']
-
-
-def get_calendar_service():
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    return build('calendar', 'v3', credentials=creds)
-
-
-def criar_evento_google_agenda(titulo, data_inicio, data_fim):
-    service = get_calendar_service()
-    evento = {
-        'summary': titulo,
-        'start': {'dateTime': data_inicio, 'timeZone': 'America/Sao_Paulo'},
-        'end': {'dateTime': data_fim, 'timeZone': 'America/Sao_Paulo'},
-    }
-    evento = service.events().insert(calendarId='primary', body=evento).execute()
-    return evento.get('htmlLink')
