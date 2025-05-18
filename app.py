@@ -1,5 +1,5 @@
 import streamlit as st
-from scraper import get_carreiras, get_detalhes_carreira, get_contexto_completo
+from scraper import get_carreiras, get_detalhes_carreira
 from gemini_api import perguntar_gemini, MODELO
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -20,11 +20,6 @@ Fonte dos dados: [https://techguide.sh/](https://techguide.sh/)
 @st.cache_data(show_spinner=True)
 def carregar_carreiras():
     return get_carreiras()
-
-
-@st.cache_data(show_spinner=True)
-def carregar_contexto_completo():
-    return get_contexto_completo()
 
 
 carreiras = carregar_carreiras()
@@ -92,8 +87,10 @@ for d in detalhes:
 # Geração automática da resposta sobre a carreira selecionada
 if 'resposta_automatica' not in st.session_state or st.session_state.resposta_automatica is None:
     with st.spinner(f"Gerando resumo sobre a carreira '{carreira_selecionada}'..."):
-        contexto_completo = carregar_contexto_completo()
-        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh. Seja detalhado e cite as habilidades, tópicos, níveis e recomendações relevantes.\n\n{contexto_completo}"
+        contexto = "\n".join([
+            d['conteudo'] if d['tipo'] == 'titulo' else ", ".join(d['conteudo']) for d in detalhes
+        ])
+        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh. Seja detalhado e cite as habilidades, tópicos, níveis e recomendações relevantes.\n\n{contexto}"
         st.session_state.resposta_automatica = perguntar_gemini(prompt)
 
 st.markdown(f"### Resumo da carreira selecionada: {carreira_selecionada}")
@@ -106,7 +103,9 @@ st.info("Exemplo: @agenda criar evento para reunião amanhã às 10h. | @keep cr
 pergunta = st.text_input("Digite sua pergunta ou comando:")
 
 if pergunta:
-    contexto_completo = carregar_contexto_completo()
+    contexto = "\n".join([
+        d['conteudo'] if d['tipo'] == 'titulo' else ", ".join(d['conteudo']) for d in detalhes
+    ])
     # Detecta comandos especiais com @
     if pergunta.strip().startswith("@agenda"):
         st.warning(
@@ -117,7 +116,7 @@ if pergunta:
             "Integração com Google Keep: (futuro) Aqui o sistema criaria uma anotação no Keep usando a API do Google.")
         st.markdown(f"**Comando detectado:** {pergunta}")
     else:
-        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh.\n\n{contexto_completo}\n\nPergunta do usuário: {pergunta}"
+        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh.\n\n{contexto}\n\nPergunta do usuário: {pergunta}"
         resposta = perguntar_gemini(prompt)
         st.markdown(f"**Resposta:** {resposta}")
 

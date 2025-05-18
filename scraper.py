@@ -42,26 +42,23 @@ def get_detalhes_carreira(url):
                 detalhes.append({'tipo': 'lista', 'conteudo': itens})
     return detalhes
 
-# Função para coletar TODO o conteúdo relevante do site e subdomínios de carreira
+# Função para contexto geral (opcional, não scraping em massa)
 
 
 def get_contexto_completo():
-    contexto = []
-    carreiras = get_carreiras()
-    for carreira in carreiras:
-        detalhes = get_detalhes_carreira(carreira['url'])
-        contexto.append(f"Carreira: {carreira['nome']}")
-        for d in detalhes:
-            if d['tipo'] == 'titulo':
-                contexto.append(f"  {d['conteudo']}")
-            elif d['tipo'] == 'lista':
-                contexto.append(f"    - " + "\n    - ".join(d['conteudo']))
-        contexto.append("")
-    return "\n".join(contexto)
+    return "Contexto geral do TechGuide.sh. Use get_detalhes_carreira para detalhes sob demanda."
 
 
 if __name__ == "__main__":
-    print("Coletando contexto completo do site...")
-    contexto = get_contexto_completo()
-    print(contexto[:2000])
-    print("... (truncado)")
+    carreiras = get_carreiras()
+    print("Carreiras disponíveis:")
+    for c in carreiras:
+        print(f"- {c['nome']}: {c['url']}")
+    # Exemplo: coletar detalhes de Data Science
+    ds = next(
+        (c for c in carreiras if 'data science' in c['nome'].lower()), None)
+    if ds:
+        detalhes = get_detalhes_carreira(ds['url'])
+        print(f"\nDetalhes de {ds['nome']}:")
+        for d in detalhes:
+            print(d)
