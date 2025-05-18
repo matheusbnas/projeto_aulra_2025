@@ -169,12 +169,7 @@ def get_calendar_flow():
 
 
 def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
-    calendar_service = get_calendar_flow()
-    if not calendar_service:
-        return {
-            "status": "error",
-            "error_message": "Serviço do Google Calendar não configurado."
-        }
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
     if code:
         flow = InstalledAppFlow.from_client_secrets_file(
             'credentials.json', SCOPES)
@@ -205,6 +200,8 @@ def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
                     "error_message": error_msg
                 }
     else:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            'credentials.json', SCOPES)
         auth_url, _ = flow.authorization_url(prompt='consent')
         return auth_url
 
