@@ -1,21 +1,25 @@
 # 🤖 Chatbot de Carreiras TechGuide
 
-Este projeto é um chatbot interativo construído com [Streamlit](https://streamlit.io/) que responde dúvidas sobre perfis profissionais e habilidades necessárias para atuar em áreas de tecnologia, utilizando inteligência artificial generativa (Google Gemini) e dados raspados do site [TechGuide.sh](https://techguide.sh/).
+Este projeto é um chatbot inteligente e multimodal, construído com [Streamlit](https://streamlit.io/), que responde dúvidas sobre perfis profissionais e habilidades necessárias para atuar em áreas de tecnologia, utilizando inteligência artificial generativa (Google Gemini) e dados raspados do site [TechGuide.sh](https://techguide.sh/).
+
+Agora, o chatbot também permite criar eventos no Google Agenda usando comandos especiais, além de responder perguntas sobre carreiras!
+
+## Deploy Online
+
+Acesse o chatbot em produção:
+👉 [https://chatbot-scraper.streamlit.app/](https://chatbot-scraper.streamlit.app/)
 
 ## Funcionalidades
 
 - Chatbot com IA Gemini (modelo `gemini-2.0-flash-lite`)
 - Raspagem automática das profissões e habilidades do [TechGuide.sh](https://techguide.sh/)
-- Interface web simples e intuitiva
+- Interface web moderna e responsiva
 - Respostas contextualizadas sobre carreiras em tecnologia
+- **Comando especial @agenda:** Crie eventos no Google Agenda diretamente pelo chat
+- Pronto para integração futura com Google Keep e outros serviços Google
+- Sidebar com seleção de carreira, fontes e portfólio
 
-## Fonte dos Dados
-
-Os dados de profissões e habilidades são coletados automaticamente do site:
-
-- [https://techguide.sh/](https://techguide.sh/)
-
-## Como rodar o projeto
+## Como rodar o projeto localmente
 
 1. **Clone o repositório e acesse a pasta:**
 
@@ -47,26 +51,41 @@ Os dados de profissões e habilidades são coletados automaticamente do site:
      ```
    - Você pode obter uma chave em: [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-5. **Execute o app:**
+5. **Configure as credenciais do Google para Agenda:**
+
+   - No [Google Cloud Console](https://console.cloud.google.com/), ative a API do Google Agenda e crie um ID OAuth 2.0.
+   - Baixe o arquivo `credentials.json` e coloque na raiz do projeto.
+
+6. **Execute o app:**
 
    ```bash
    streamlit run app.py
    ```
 
-6. **Acesse no navegador:**
+7. **Acesse no navegador:**
    - O Streamlit irá mostrar o link local (geralmente http://localhost:8501)
 
 ## Como usar
 
-- Digite sua pergunta sobre carreiras, profissões ou habilidades em tecnologia no campo de texto e pressione Enter.
-- O bot irá responder automaticamente com base nos dados do [TechGuide.sh](https://techguide.sh/) e na IA Gemini.
-- No menu lateral, você pode ver a lista de profissões disponíveis.
+- Selecione uma carreira no menu lateral.
+- Veja o resumo automático da carreira na tela principal.
+- Use o campo de chat para perguntar sobre a carreira ou usar comandos especiais.
+- **Para criar um evento no Google Agenda:**
+  - Digite, por exemplo: `@agenda criar evento para reunião amanhã às 10h`
+  - O app irá pedir autorização do Google e criar o evento na sua agenda.
+- (Futuro) Use `@keep` para criar anotações no Google Keep.
 
-## Exemplo de perguntas
+## Exemplo de comandos
 
 - "Quais habilidades preciso para ser cientista de dados?"
-- "O que faz um analista de segurança?"
-- "Quais áreas existem em dados?"
+- `@agenda criar evento para entrevista de emprego segunda às 15h`
+- `@keep criar anotação sobre dicas de carreira em dados`
+
+## Fontes e Portfólio
+
+- Matheus Bernardes - [Portfólio](https://portfolio-matheusbernardes.netlify.app/)
+- Matech - [Site da empresa](https://matechai.com/)
+- Dados de carreira: [https://techguide.sh/](https://techguide.sh/)
 
 ## Licença
 
@@ -74,4 +93,4 @@ Este projeto é apenas para fins educacionais e de demonstração.
 
 ---
 
-**Fonte dos dados:** [https://techguide.sh/](https://techguide.sh/)
+**Deploy:** [https://chatbot-scraper.streamlit.app/](https://chatbot-scraper.streamlit.app/)
