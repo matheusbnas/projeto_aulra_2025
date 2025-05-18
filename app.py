@@ -8,6 +8,9 @@ import os
 from google.auth.transport.requests import Request
 from datetime import datetime, timedelta
 import re
+from google.oauth2 import service_account
+import json
+from googleapiclient.errors import HttpError
 
 # Cria o arquivo credentials.json a partir da variável de ambiente GOOGLE_CREDENTIALS_JSON, se existir
 if os.getenv('GOOGLE_CREDENTIALS_JSON'):
@@ -117,7 +120,8 @@ st.info("Exemplo: @agenda criar evento para reunião amanhã às 10h. | @keep cr
 pergunta = st.text_input("Digite sua pergunta ou comando:")
 
 # Escopos necessários
-SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+SCOPES = ['https://www.googleapis.com/auth/calendar',
+          'https://www.googleapis.com/auth/spreadsheets']
 
 # Função para extrair dados do comando @agenda (simples, pode ser melhorada)
 
@@ -156,12 +160,24 @@ def extrair_evento_agenda(comando):
 
 @st.cache_resource(show_spinner=True)
 def get_calendar_flow():
-    return InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+    SERVICE_ACCOUNT_FILE_PATH = os.environ.get('SERVICE_ACCOUNT_FILE_PATH')
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE_PATH,
+        scopes=SCOPES
+    )
+    return build('calendar', 'v3', credentials=creds)
 
 
 def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
-    flow = get_calendar_flow()
+    calendar_service = get_calendar_flow()
+    if not calendar_service:
+        return {
+            "status": "error",
+            "error_message": "Serviço do Google Calendar não configurado."
+        }
     if code:
+        flow = InstalledAppFlow.from_client_secrets_file(
+            'credentials.json', SCOPES)
         flow.fetch_token(code=code)
         creds = flow.credentials
         service = build('calendar', 'v3', credentials=creds)
@@ -170,8 +186,24 @@ def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
             'start': {'dateTime': data_inicio, 'timeZone': 'America/Sao_Paulo'},
             'end': {'dateTime': data_fim, 'timeZone': 'America/Sao_Paulo'},
         }
-        evento = service.events().insert(calendarId='primary', body=evento).execute()
-        return evento.get('htmlLink')
+        try:
+            evento = service.events().insert(calendarId='primary', body=evento).execute()
+            return evento.get('htmlLink')
+        except HttpError as e:
+            error_details = json.loads(e.content).get('error', {})
+            reason = error_details.get('errors', [{}])[0].get('reason')
+            message = error_details.get('message')
+
+            if e.resp.status == 403 and reason == 'forbiddenForServiceAccounts':
+                error_msg = (
+                    "Erro: Falha ao criar evento. A conta de serviço pode não ter permissão "
+                    f"para adicionar convidados ('{email_convidado}') ou enviar notificações. "
+                    "Tente criar o evento sem um email de convidado, ou verifique as configurações de delegação de domínio do Google Workspace."
+                )
+                return {
+                    "status": "error",
+                    "error_message": error_msg
+                }
     else:
         auth_url, _ = flow.authorization_url(prompt='consent')
         return auth_url
