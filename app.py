@@ -120,8 +120,8 @@ st.markdown(st.session_state.resposta_automatica)
 
 # Chatbot sempre visível
 st.subheader(
-    "Pergunte ao bot sobre a carreira, ou use comandos especiais com @ para Google Agenda, Keep, etc:")
-st.info("Exemplo: @agenda criar evento para reunião amanhã às 10h. | @keep criar anotação sobre carreira de dados.")
+    "Pergunte ao bot sobre a carreira, ou use comandos especiais com @ para Google Agenda, etc:")
+st.info("Exemplo: @agenda criar evento para reunião amanhã às 10h. | @sheet criar planilha com nome Minha Nova Planilha.")
 pergunta = st.text_input("Digite sua pergunta ou comando:")
 
 # Escopos necessários
@@ -177,7 +177,9 @@ def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
     SCOPES = ['https://www.googleapis.com/auth/calendar']
     if code:
         flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json', SCOPES)
+            'credentials.json', SCOPES,
+            redirect_uri='https://projeto-aulra-2025.onrender.com'
+        )
         flow.fetch_token(code=code)
         creds = flow.credentials
         service = build('calendar', 'v3', credentials=creds)
@@ -206,9 +208,56 @@ def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
                 }
     else:
         flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json', SCOPES)
+            'credentials.json', SCOPES,
+            redirect_uri='https://projeto-aulra-2025.onrender.com'
+        )
         auth_url, _ = flow.authorization_url(prompt='consent')
         return auth_url
+
+# Função para criar uma nova planilha no Google Sheets
+
+
+def criar_planilha_google_sheets(nome_planilha):
+    SERVICE_ACCOUNT_FILE_PATH = os.environ.get('SERVICE_ACCOUNT_FILE_PATH')
+    SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE_PATH,
+        scopes=SCOPES
+    )
+    try:
+        service = build('sheets', 'v4', credentials=creds)
+        spreadsheet = {
+            'properties': {
+                'title': nome_planilha
+            }
+        }
+        spreadsheet = service.spreadsheets().create(
+            body=spreadsheet, fields='spreadsheetId').execute()
+        sheet_id = spreadsheet.get('spreadsheetId')
+        sheet_url = f'https://docs.google.com/spreadsheets/d/{sheet_id}'
+        return {'status': 'success', 'url': sheet_url}
+    except HttpError as e:
+        return {'status': 'error', 'error_message': str(e)}
+
+
+def criar_evento_google_agenda_service_account(titulo, data_inicio, data_fim):
+    SERVICE_ACCOUNT_FILE_PATH = os.environ.get('SERVICE_ACCOUNT_FILE_PATH')
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE_PATH,
+        scopes=SCOPES
+    )
+    try:
+        service = build('calendar', 'v3', credentials=creds)
+        evento = {
+            'summary': titulo,
+            'start': {'dateTime': data_inicio, 'timeZone': 'America/Sao_Paulo'},
+            'end': {'dateTime': data_fim, 'timeZone': 'America/Sao_Paulo'},
+        }
+        evento = service.events().insert(calendarId='primary', body=evento).execute()
+        return {'status': 'success', 'url': evento.get('htmlLink')}
+    except HttpError as e:
+        return {'status': 'error', 'error_message': str(e)}
 
 
 if pergunta:
@@ -220,7 +269,22 @@ if pergunta:
         st.markdown(f"**Comando detectado:** {pergunta}")
         # Extrai dados do evento
         titulo, data_inicio, data_fim = extrair_evento_agenda(pergunta)
-        # Passo 1: Se não há code, gera link de autorização
+        st.info("""
+🔵 O código estará em azul, destacado na tela.
+
+4️⃣ **Copie o código** (Ctrl+C ou botão de copiar).
+
+5️⃣ **Cole o código no campo abaixo** e pressione Enter.
+
+6️⃣ ✅ Pronto! O evento será criado na sua agenda.
+
+---
+**Dica:**  
+Se não aparecer o código, role a tela do Google até o final ou procure por "Código de autorização".
+
+**Atenção:**  
+Seu evento só será criado após colar o código e pressionar Enter!
+""")
         code = st.text_input(
             "Cole aqui o código de autorização do Google (após clicar no link abaixo):", key="code_input")
         if not code:
@@ -237,10 +301,22 @@ if pergunta:
                     f"Evento criado com sucesso! [Ver no Google Agenda]({link_evento})")
             except Exception as e:
                 st.error(f"Erro ao criar evento: {e}")
-    elif pergunta.strip().startswith("@keep"):
-        st.warning(
-            "Integração com Google Keep: (futuro) Aqui o sistema criaria uma anotação no Keep usando a API do Google.")
+    elif pergunta.strip().startswith("@sheet"):
         st.markdown(f"**Comando detectado:** {pergunta}")
+        match = re.search(
+            r'@sheet criar planilha com nome (.+)', pergunta, re.I)
+        if match:
+            nome_planilha = match.group(1).strip()
+            resultado = criar_planilha_google_sheets(nome_planilha)
+            if resultado['status'] == 'success':
+                st.success(
+                    f"Planilha criada com sucesso! [Abrir no Google Sheets]({resultado['url']})")
+            else:
+                st.error(
+                    f"Erro ao criar planilha: {resultado['error_message']}")
+        else:
+            st.warning(
+                "Formato do comando inválido. Use: @sheet criar planilha com nome Nome da Planilha")
     else:
         prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh (https://techguide.sh/) e do repositório oficial https://github.com/alura/techguide.\n\n{contexto}\n\nPergunta do usuário: {pergunta}"
         resposta = perguntar_gemini(prompt)
