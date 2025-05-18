@@ -219,6 +219,8 @@ def criar_evento_google_agenda(titulo, data_inicio, data_fim, code=None):
 
 def criar_planilha_google_sheets(nome_planilha):
     SERVICE_ACCOUNT_FILE_PATH = os.environ.get('SERVICE_ACCOUNT_FILE_PATH')
+    if not SERVICE_ACCOUNT_FILE_PATH or not os.path.exists(SERVICE_ACCOUNT_FILE_PATH):
+        return {'status': 'error', 'error_message': 'Funcionalidade de criação de planilhas não está disponível no momento. Credencial de Service Account não encontrada.'}
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE_PATH,
