@@ -90,9 +90,13 @@ if carreira_url:
 
 # Sidebar formatado
 st.sidebar.markdown(f"### {carreira_selecionada}")
-if carreira_url:
+if carreira_url and carreira_url.startswith("http"):
     st.sidebar.markdown(
         f"[Ver guia completo]({carreira_url})", unsafe_allow_html=True)
+else:
+    st.sidebar.warning("Link da carreira indisponível ou inválido.")
+st.sidebar.markdown(
+    "[Repositório oficial do TechGuide (Alura)](https://github.com/alura/techguide)", unsafe_allow_html=True)
 st.sidebar.markdown("---")
 for d in detalhes:
     if d['tipo'] == 'titulo':
@@ -107,9 +111,10 @@ if 'resposta_automatica' not in st.session_state or st.session_state.resposta_au
         contexto = "\n".join([
             d['conteudo'] if d['tipo'] == 'titulo' else ", ".join(d['conteudo']) for d in detalhes
         ])
-        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh. Seja detalhado e cite as habilidades, tópicos, níveis e recomendações relevantes.\n\n{contexto}"
+        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh (https://techguide.sh/) e do repositório oficial https://github.com/alura/techguide. Seja detalhado e cite as habilidades, tópicos, níveis e recomendações relevantes.\n\n{contexto}"
         st.session_state.resposta_automatica = perguntar_gemini(prompt)
 
+# Chatbot sempre visível
 st.markdown(f"### Resumo da carreira selecionada: {carreira_selecionada}")
 st.markdown(st.session_state.resposta_automatica)
 
@@ -237,6 +242,6 @@ if pergunta:
             "Integração com Google Keep: (futuro) Aqui o sistema criaria uma anotação no Keep usando a API do Google.")
         st.markdown(f"**Comando detectado:** {pergunta}")
     else:
-        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh.\n\n{contexto}\n\nPergunta do usuário: {pergunta}"
+        prompt = f"Você é um especialista em carreiras de tecnologia. Responda tudo sobre a área '{carreira_selecionada}' com base nas informações abaixo extraídas do site TechGuide.sh (https://techguide.sh/) e do repositório oficial https://github.com/alura/techguide.\n\n{contexto}\n\nPergunta do usuário: {pergunta}"
         resposta = perguntar_gemini(prompt)
         st.markdown(f"**Resposta:** {resposta}")
