@@ -267,32 +267,15 @@ if pergunta:
     # Detecta comandos especiais com @
     if pergunta.strip().startswith("@agenda"):
         st.markdown(f"**Comando detectado:** {pergunta}")
-        # Extrai dados do evento
         titulo, data_inicio, data_fim = extrair_evento_agenda(pergunta)
-        st.info("""
-🔵 O código estará em azul, destacado na tela.
-
-4️⃣ **Copie o código** (Ctrl+C ou botão de copiar).
-
-5️⃣ **Cole o código no campo abaixo** e pressione Enter.
-
-6️⃣ ✅ Pronto! O evento será criado na sua agenda.
-
----
-**Dica:**  
-Se não aparecer o código, role a tela do Google até o final ou procure por "Código de autorização".
-
-**Atenção:**  
-Seu evento só será criado após colar o código e pressionar Enter!
-""")
+        st.info("Siga o passo a passo para autorizar o Google Agenda...")
         code = st.text_input(
-            "Cole aqui o código de autorização do Google (após clicar no link abaixo):", key="code_input")
+            "Cole aqui o código de autorização do Google:", key="code_input")
         if not code:
             auth_url = criar_evento_google_agenda(
                 titulo, data_inicio, data_fim, code=None)
             st.markdown(
                 f"[Clique aqui para autorizar o Google Agenda]({auth_url})")
-            st.info("Após autorizar, copie o código do Google e cole acima.")
         else:
             try:
                 link_evento = criar_evento_google_agenda(
